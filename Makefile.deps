@@ -2,6 +2,8 @@ AIDemo.o: AIDemo.cc Player.hh Info.hh Settings.hh Structs.hh Utils.hh \
   Defs.hh State.hh Action.hh Random.hh Registry.hh
 AINull.o: AINull.cc Player.hh Info.hh Settings.hh Structs.hh Utils.hh \
   Defs.hh State.hh Action.hh Random.hh Registry.hh
+AIRick.o: AIRick.cc Player.hh Info.hh Settings.hh Structs.hh Utils.hh \
+  Defs.hh State.hh Action.hh Random.hh Registry.hh
 Action.o: Action.cc Action.hh Structs.hh Utils.hh Defs.hh
 Game.o: Game.cc Game.hh Player.hh Info.hh Settings.hh Structs.hh Utils.hh \
   Defs.hh State.hh Action.hh Random.hh Registry.hh Board.hh
