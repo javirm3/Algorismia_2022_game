@@ -119,7 +119,8 @@ struct PLAYER_NAME : public Player {
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
-        for (Dir d : dirs) {
+        for (int i : random_permutation(4)) {
+            Dir d = dirs[i];
             if (pos_correct(p1 + d)) {
                 Q.push({ d,
                     p1 + d,
@@ -172,7 +173,8 @@ struct PLAYER_NAME : public Player {
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
-        for (Dir d : dirs) {
+        for (int i : random_permutation(4)) {
+            Dir d = dirs[i];
             if (pos_correct(p1 + d)) {
                 Q.push({ d,
                     p1 + d,
@@ -209,7 +211,8 @@ struct PLAYER_NAME : public Player {
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
-        for (Dir d : dirs) {
+        for (int i : random_permutation(4)) {
+            Dir d = dirs[i];
             if (pos_correct(p1 + d)) {
                 Q.push({ d,
                     p1 + d,
