@@ -242,17 +242,21 @@ struct PLAYER_NAME : public Player {
         }
     }
 
-    int flojo()
+    void flojo_fuerte(int& min_player, int& max_player)
     {
         int min_strength = INF;
-        int min_player = 0;
+        int max_strength = 0;
         for (int i = 0; i < num_players(); i++) {
             if (strength(i) < min_strength) {
                 min_player = i;
                 min_strength = strength(i);
             }
+            if (strength(i) > max_strength) {
+                max_player = i;
+                max_strength = strength(i);
+            }
         }
-        return min_player;
+        return;
     }
 
     void move_units()
@@ -260,18 +264,26 @@ struct PLAYER_NAME : public Player {
         vector<int> alive = alive_units(me());
         vector<Pos> food_positions = get_food();
         for (int id : alive) {
-            int dist_food = INF, dist_enemy = INF, dist_zombie = INF;
-            Dir dir_food, dir_enemy, dir_zombie, opt_dir = Up;
+            int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF;
+            Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, opt_dir = Up;
             BFS_food(dist_food, dir_food, unit(id).pos);
-            int team_obj = flojo();
-            if (team_obj == me())
+            int team_flojo = 0, team_fuerte = 0;
+            flojo_fuerte(team_flojo, team_fuerte);
+            if (team_flojo != me())
+                BFS_enemy(dist_enemy_flojo, dir_enemy_flojo, unit(id).pos, team_flojo);
+            else
                 BFS_enemy(dist_enemy, dir_enemy, unit(id).pos, -1);
             BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
 
-            if (team_obj == me())
-                opt_dir = dir_food;
+            if (team_flojo == me())
+                if (dist_food < dist_enemy + 3)
+                    opt_dir = dir_food;
+                else
+                    opt_dir = dir_enemy;
             else {
-                if (dist_enemy < 2 + dist_zombie)
+                if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
+                    opt_dir = dir_enemy_flojo;
+                else if (dist_enemy < 2 + dist_zombie)
                     opt_dir = dir_enemy;
                 else if (dist_food < dist_zombie)
                     opt_dir = dir_food;
