@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Rick
+#define PLAYER_NAME Zarathustra
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -266,15 +266,17 @@ struct PLAYER_NAME : public Player {
             int team_obj = flojo();
             if (team_obj == me())
                 BFS_enemy(dist_enemy, dir_enemy, unit(id).pos, -1);
-
             BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
 
-            if (dist_zombie < dist_food + 3)
-                opt_dir = dir_zombie;
-            else if (dist_food < dist_enemy + 5)
+            if (team_obj == me())
                 opt_dir = dir_food;
             else {
-                opt_dir = dir_enemy;
+                if (dist_enemy < 2 + dist_zombie)
+                    opt_dir = dir_enemy;
+                else if (dist_food < dist_zombie)
+                    opt_dir = dir_food;
+                else
+                    opt_dir = dir_zombie;
             }
             move(id, opt_dir);
         }
