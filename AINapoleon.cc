@@ -23,10 +23,14 @@ struct PLAYER_NAME : public Player {
     map<Pos, int> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
-    vector<int> sello_zombie = { 1, 1, 0, 0 };
-    vector<int> sello_enemy = { 0, 0, 0, 0 };
-    vector<int> sello_dead = { 0, 0, 0, 0 };
-    vector<int> sello_food = { 0, 0, 0, 0 };
+    vector<int> sello_zombie = { 10, 8, 6, 4 };
+    // vector<int> sello_zombie = { 0 };
+    vector<int> sello_enemy = { 10, 8, 6, 4 };
+    // vector<int> sello_enemy = { 0 };
+    vector<int> sello_friend = { 0, 1, 3, 5 };
+    vector<int> sello_dead_1 = { 0, 5, 3, 1 };
+    vector<int> sello_dead_2 = { 0, 0, 0, 0, 1 };
+    vector<int> sello_food = { 16, 12, 8, 6, 4, 2 };
 
     struct Dpd {
         Dir dir;
@@ -109,7 +113,25 @@ struct PLAYER_NAME : public Player {
                 board[p2] += sello[dist];
             }
     }
-
+    void clear_board()
+    {
+        for (int i = 0; i < 60; i++) {
+            for (int j = 0; j < 60; j++) {
+                Pos p = Pos(i, j);
+                if (pos_correct(p)) {
+                    if (cell(p).owner != me())
+                        board[p] = 2;
+                    else
+                        board[p] = -1;
+                } else
+                    board[p] = -10;
+            }
+        }
+        // if (cell(it*).owner != me())
+        //     board[p] = 1;
+        // else
+        //     board[p] = 0;
+    }
     void update_board() // Función que actualiza los valores del mapa de interés
     {
         for (int id : zombies()) //Ponemos sellos en los zombies
@@ -119,48 +141,133 @@ struct PLAYER_NAME : public Player {
             if (pl != me())
                 for (int id : alive_units(pl))
                     poner_sello(unit(id).pos, sello_enemy);
+            else
+                for (int id : alive_units(pl))
+                    poner_sello(unit(id).pos, sello_friend);
 
         for (int pl = 0; pl < num_players(); ++pl) //Ponemos sellos en cada unidad muerta de cada equipo
             //  (EL MIO INCLUIDO YA QUE ACABAN ZOMBIES IGUAL)
             for (int id : dead_units(pl))
-                poner_sello(unit(id).pos, sello_dead);
+                if (unit(id).rounds_for_zombie < 3)
+                    poner_sello(unit(id).pos, sello_dead_1);
+                else
+                    poner_sello(unit(id).pos, sello_dead_2);
 
         for (Pos food_pos : get_food()) //Ponemos sellos en cada celda donde hay comida
             poner_sello(food_pos, sello_food);
+    }
+
+    vector<bool> equal(double north, double south, double west, double east)
+    {
+        vector<bool> equals(4, false);
+        if (north == south or north == west or north == east)
+            equals[0] = true;
+        if (south == north or south == west or south == east)
+            equals[1] = true;
+        if (west == north or south == west or west == east)
+            equals[2] = true;
+        if (east == north or east == west or south == east)
+            equals[3] = true;
+        return equals;
     }
 
     gradient get_gradient(Pos p) // returns the norm of the gradient and its direction
     {
         gradient max;
         max.p = p;
-        double grad_long = 3;
+        double grad_long = 2;
         double north = 0, south = 0, east = 0, west = 0;
-        for (int i = 1; i <= int(grad_long); i++) {
-            if (pos_correct(p + Pos(-i, 0)))
-                north += board[p + Pos(-i, 0)] / grad_long;
-            if (pos_correct(p + Pos(i, 0)))
-                south += board[p + Pos(i, 0)] / grad_long;
-            if (pos_correct(p + Pos(0, -i)))
-                west += board[p + Pos(0, -i)] / grad_long;
-            if (pos_correct(p + Pos(0, i)))
-                east += board[p + Pos(0, i)] / grad_long;
+        int i = 1;
+        Pos p_aux = p;
+        while (i <= grad_long and pos_correct(p_aux + Pos(-1, 0))) {
+            p_aux = p_aux + Up;
+            north += board[p_aux];
+            i++;
         }
+        if (i != 1)
+            north = north / (i - 1);
+        north -= board[p];
+        i = 1;
+        p_aux = p;
+        while (i <= grad_long and pos_correct(p_aux + Pos(1, 0))) {
+            p_aux = p_aux + Down;
+            south += board[p_aux];
+            i++;
+        }
+        if (i != 1)
+            south = south / (i - 1);
+        south -= board[p];
+        i = 1;
+        p_aux = p;
+        while (i <= grad_long and pos_correct(p_aux + Pos(0, -1))) {
+            p_aux = p_aux + Left;
+            west += board[p_aux];
+            i++;
+        }
+        if (i != 1)
+            west = west / (i - 1);
+        west -= board[p];
+        i = 1;
+        p_aux = p;
+        while (i <= grad_long and pos_correct(p_aux + Pos(0, 1))) {
+            p_aux = p_aux + Right;
+            east += board[p_aux];
+            i++;
+        }
+        if (i != 1)
+            east = east / (i - 1);
+        east -= board[p];
+        cerr << p << ": " << north << " " << south << " " << west << " " << east << endl;
+        //
+        // for (int i = 1; i <= int(grad_long); i++) {
+        //     if (pos_correct(p + Pos(-i, 0)))
+        //         north += board[p + Pos(-i, 0)] / grad_long;
+        //     if (pos_correct(p + Pos(i, 0)))
+        //         south += board[p + Pos(i, 0)] / grad_long;
+        //     if (pos_correct(p + Pos(0, -i)))
+        //         west += board[p + Pos(0, -i)] / grad_long;
+        //     if (pos_correct(p + Pos(0, i)))
+        //         east += board[p + Pos(0, i)] / grad_long;
+        // }
 
         double horizontal = (east - west) / 2;
         double vertical = (south - north) / 2;
-        if (abs(horizontal) > abs(vertical)) {
-            max.mod = abs(horizontal);
-            if (horizontal > 0)
-                max.dir = Right;
-            else
-                max.dir = Left;
+        if (north > south and north > west and north > east) {
+            max.mod = abs(north);
+            max.dir = Up;
+        } else if (south > north and south > east and south > west) {
+            max.mod = abs(south);
+            max.dir = Down;
+        } else if (east > north and east > south and east > west) {
+            max.mod = abs(east);
+            max.dir = Right;
+        } else if (west > north and west > south and west > east) {
+            max.mod = abs(west);
+            max.dir = Left;
         } else {
-            max.mod = abs(vertical);
-            if (vertical > 0)
-                max.dir = Down;
-            else
-                max.dir = Up;
+            vector<bool> equals = equal(north, south, west, east);
+            vector<double> mods = { north, south, west, east };
+            for (int i : random_permutation(4)) {
+                if (equals[i]) {
+                    max.mod = mods[i];
+                    max.dir = dirs[i];
+                    return max;
+                }
+            }
         }
+        // if (abs(horizontal) > abs(vertical)) {
+        //     max.mod = abs(horizontal);
+        //     if (horizontal > 0)
+        //         max.dir = Right;
+        //     else
+        //         max.dir = Left;
+        // } else {
+        //     max.mod = abs(vertical);
+        //     if (vertical > 0)
+        //         max.dir = Down;
+        //     else
+        //         max.dir = Up;
+        // }
         return max;
     }
     int min3(int x, int y, int z)
@@ -434,49 +541,20 @@ struct PLAYER_NAME : public Player {
     void move_units()
     {
         vector<int> alive = alive_units(me());
-        vector<Pos> food_positions = get_food();
+        priority_queue<gradient> Q;
         for (int id : alive) {
-            int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
-            Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, dir_dead, opt_dir;
-            BFS_food(dist_food, dir_food, unit(id).pos);
-            int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
-            flojo_fuerte(team_flojo, team_fuerte);
-            if (team_flojo != me())
-                BFS_enemy(dist_enemy_flojo, dir_enemy_flojo, unit(id).pos, team_flojo);
-            else
-                BFS_enemy(dist_enemy, dir_enemy, unit(id).pos, -1);
-            BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
-            BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
-
-            // if (dist_dead < 2 and rounds_dead < dist_dead)
-            //     opt_dir = dir_alternative(unit(id).pos, dir_dead);
-            // else
-            if (team_flojo == me())
-                if (dist_food < dist_enemy + 3)
-                    opt_dir = dir_food;
-                else
-                    opt_dir = dir_enemy;
+            Q.push(get_gradient(unit(id).pos));
+        }
+        while (not Q.empty()) {
+            if (Q.top().mod != 0 and pos_correct(Q.top().p + Q.top().dir))
+                move(cell(Q.top().p).id, Q.top().dir);
             else {
-                if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
-                    opt_dir = dir_enemy_flojo;
-                else if (dist_enemy < 3 + dist_zombie)
-                    opt_dir = dir_enemy;
-                else if (dist_food < dist_zombie)
-                    opt_dir = dir_food;
-                else
-                    opt_dir = dir_zombie;
+                int dist;
+                Dir opt_dir;
+                BFS_enemy(dist, opt_dir, Q.top().p, -1);
+                move(cell(Q.top().p).id, opt_dir);
             }
-            // if (unit(id).rounds_for_zombie != -1) {
-            //     if (dist_food <= unit(id).rounds_for_zombie)
-            //         opt_dir = dir_food;
-            //     else if (dist_zombie <= unit(id).rounds_for_zombie)
-            //         opt_dir = dir_zombie;
-            //     else if (dist_enemy < dist_zombie)
-            //         opt_dir = dir_enemy;
-            //     else
-            //         opt_dir = dir_zombie;
-            // }
-            move(id, opt_dir);
+            Q.pop();
         }
     }
 
@@ -497,12 +575,16 @@ struct PLAYER_NAME : public Player {
     }
     void print_board() // Imprime la tabla para checkear que esta bien el mapa de interés
     {
+        fstream myfile;
+
+        myfile.open("matrix.txt", fstream::out);
         for (int i = 0; i < 60; i++) {
             for (int j = 0; j < 60; j++)
-                cerr << board[Pos(i, j)] << " ";
-            cerr << endl;
+                myfile << board[Pos(i, j)] << " ";
+            myfile << endl;
         }
-        cerr << endl;
+        myfile << endl;
+        myfile.close();
     }
     virtual void play()
     {
@@ -511,14 +593,19 @@ struct PLAYER_NAME : public Player {
             build_board();
             // //Hacer un bfs que vaya pintando la distancia a los vertices
         }
-        if (round() == num_rounds() - 1) {
-            priority_queue<gradient> Q;
-            poner_sello(Pos(1, 0), sello_zombie);
-            Q.push(get_gradient(Pos(3, 0)));
-            Q.push(get_gradient(Pos(0, 0)));
-            cerr << Q.top().mod << " " << Q.top().dir << endl;
-            Q.pop();
-            cerr << Q.top().mod << " " << Q.top().dir << endl;
+        clear_board();
+        update_board();
+        move_units();
+        if (round() == 6) {
+            // priority_queue<gradient> Q;
+            // poner_sello(Pos(1, 0), sello_zombie);
+            // Q.push(get_gradient(Pos(3, 0)));
+            // Q.push(get_gradient(Pos(0, 0)));
+            // cerr << Q.top().mod << " " << Q.top().dir << endl;
+            // Q.pop();
+            // cerr << Q.top().mod << " " << Q.top().dir << endl;
+
+            print_board();
         }
     }
 };
