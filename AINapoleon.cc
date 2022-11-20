@@ -1,7 +1,7 @@
 #include "Player.hh"
 #include <map>
 #include <queue>
-#define PLAYER_NAME Napoleon
+#define PLAYER_NAME Napoleon0
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -20,14 +20,26 @@ struct PLAYER_NAME : public Player {
     }
 
     const vector<Dir> dirs = { Up, Down, Left, Right };
-    VVI board = VVI(60, VI(60, 0));
+    map<Pos, int> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
+    vector<int> sello_zombie = { 1, 1, 0, 0 };
+    vector<int> sello_enemy = { 0, 0, 0, 0 };
+    vector<int> sello_dead = { 0, 0, 0, 0 };
+    vector<int> sello_food = { 0, 0, 0, 0 };
+
     struct Dpd {
         Dir dir;
         Pos p;
         int dist;
     };
+    struct gradient {
+        Dir dir;
+        Pos p;
+        double mod;
+        bool operator<(const gradient& a) const { return mod < a.mod; }
+    };
+
     int BFS(Pos p1, Pos p2)
     {
         VVB visited(60, VB(60, false));
@@ -64,29 +76,93 @@ struct PLAYER_NAME : public Player {
         for (int i = 0; i < 60; i++)
             for (int j = 0; j < 60; j++) {
                 Pos p = Pos(i, j);
+                Adj[p][0].push_back(p);
                 if (pos_correct(p))
-                    for (Dir d : dirs) {
-                        if (pos_correct(p + d)) {
+                    for (Dir d : dirs)
+                        if (pos_correct(p + d))
                             Adj[p][1].push_back(p + d);
-                        }
-                    }
             }
-        for (int k = 2; k <= 6; k++) {
+
+        map<Pos, map<Pos, bool>> visited;
+        for (int k = 2; k <= 11; k++)
             for (int i = 0; i < 60; i++)
                 for (int j = 0; j < 60; j++) {
                     Pos p = Pos(i, j);
-                    set<Pos> positions;
+                    visited[p][p] = true;
                     if (pos_correct(p))
-                        for (Pos p2 : Adj[p][k - 1]) { //Se puede hacer la matriz inversa elevando.
+                        for (Pos p2 : Adj[p][k - 1]) {
+                            visited[p][p2] = true;
                             for (Pos p3 : Adj[p2][1])
-                                positions.insert(p3);
+                                if (not visited[p][p3]) {
+                                    visited[p][p3] = true;
+                                    Adj[p][k].push_back(p3);
+                                }
                         }
-                    for (Pos p4 : positions)
-                        Adj[p][k].push_back(p4);
                 }
-        }
     }
 
+    void poner_sello(Pos p, vector<int> sello) // Función que imprime el sello pasado en la posición indicada
+    {
+        int n = sello.size();
+        for (int dist = 0; dist < n; ++dist)
+            for (Pos p2 : Adj[p][dist]) {
+                board[p2] += sello[dist];
+            }
+    }
+
+    void update_board() // Función que actualiza los valores del mapa de interés
+    {
+        for (int id : zombies()) //Ponemos sellos en los zombies
+            poner_sello(unit(id).pos, sello_zombie);
+
+        for (int pl = 0; pl < num_players(); ++pl) //Ponemos sellos en cada unidad viva de cada equipo enemigo
+            if (pl != me())
+                for (int id : alive_units(pl))
+                    poner_sello(unit(id).pos, sello_enemy);
+
+        for (int pl = 0; pl < num_players(); ++pl) //Ponemos sellos en cada unidad muerta de cada equipo
+            //  (EL MIO INCLUIDO YA QUE ACABAN ZOMBIES IGUAL)
+            for (int id : dead_units(pl))
+                poner_sello(unit(id).pos, sello_dead);
+
+        for (Pos food_pos : get_food()) //Ponemos sellos en cada celda donde hay comida
+            poner_sello(food_pos, sello_food);
+    }
+
+    gradient get_gradient(Pos p) // returns the norm of the gradient and its direction
+    {
+        gradient max;
+        max.p = p;
+        double grad_long = 3;
+        double north = 0, south = 0, east = 0, west = 0;
+        for (int i = 1; i <= int(grad_long); i++) {
+            if (pos_correct(p + Pos(-i, 0)))
+                north += board[p + Pos(-i, 0)] / grad_long;
+            if (pos_correct(p + Pos(i, 0)))
+                south += board[p + Pos(i, 0)] / grad_long;
+            if (pos_correct(p + Pos(0, -i)))
+                west += board[p + Pos(0, -i)] / grad_long;
+            if (pos_correct(p + Pos(0, i)))
+                east += board[p + Pos(0, i)] / grad_long;
+        }
+
+        double horizontal = (east - west) / 2;
+        double vertical = (south - north) / 2;
+        if (abs(horizontal) > abs(vertical)) {
+            max.mod = abs(horizontal);
+            if (horizontal > 0)
+                max.dir = Right;
+            else
+                max.dir = Left;
+        } else {
+            max.mod = abs(vertical);
+            if (vertical > 0)
+                max.dir = Down;
+            else
+                max.dir = Up;
+        }
+        return max;
+    }
     int min3(int x, int y, int z)
     {
         return min(min(x, y), z);
@@ -404,13 +480,13 @@ struct PLAYER_NAME : public Player {
         }
     }
 
-    void print_adj()
+    void print_adj() // Función que imprime la matriz de distancias (solo para comprobar)
     {
-        for (int i = 0; i < 60; i++) {
-            for (int j = 0; j < 60; j++) {
+        for (int i = 1; i < 2; i++) {
+            for (int j = 0; j < 1; j++) {
                 Pos p = Pos(i, j);
                 cerr << p << ": " << endl;
-                for (int k = 1; k < 11; k++) {
+                for (int k = 0; k < 11; k++) {
                     cerr << k << ": ";
                     for (Pos p2 : Adj[p][k])
                         cerr << p2.i << " " << p2.j << ", ";
@@ -419,14 +495,30 @@ struct PLAYER_NAME : public Player {
             }
         }
     }
-
+    void print_board() // Imprime la tabla para checkear que esta bien el mapa de interés
+    {
+        for (int i = 0; i < 60; i++) {
+            for (int j = 0; j < 60; j++)
+                cerr << board[Pos(i, j)] << " ";
+            cerr << endl;
+        }
+        cerr << endl;
+    }
     virtual void play()
     {
         //move_units();
-
         if (round() == 0) {
             build_board();
-            print_adj(); //Hacer un bfs que vaya pintando la distancia a los vertices
+            // //Hacer un bfs que vaya pintando la distancia a los vertices
+        }
+        if (round() == num_rounds() - 1) {
+            priority_queue<gradient> Q;
+            poner_sello(Pos(1, 0), sello_zombie);
+            Q.push(get_gradient(Pos(3, 0)));
+            Q.push(get_gradient(Pos(0, 0)));
+            cerr << Q.top().mod << " " << Q.top().dir << endl;
+            Q.pop();
+            cerr << Q.top().mod << " " << Q.top().dir << endl;
         }
     }
 };
