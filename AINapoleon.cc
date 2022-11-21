@@ -25,12 +25,12 @@ struct PLAYER_NAME : public Player {
     int INF = 1e7;
     vector<int> sello_zombie = { 1000, 0, 100, 125, 150, 25, 10, 5, 1 };
     // vector<int> sello_zombie = { 0 };
-    vector<int> sello_enemy = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
+    vector<int> sello_enemy = { 1000, 0, 100, -100, -40, 25, 10, 5, 1 };
     // vector<int> sello_enemy = { 0 };
     vector<int> sello_blanco = { 3, 2, 1 };
-    vector<int> sello_friend = { 0, 1, 1, 2 };
-    vector<int> sello_dead_1 = { 16, 8, 4, 2, 1 };
-    vector<int> sello_dead_2 = { -16, -8, -4, 2, 1 };
+    vector<int> sello_friend = { -3, -3, 1, 2 };
+    vector<int> sello_dead_1 = { -100, -50, -25 };
+    vector<int> sello_dead_2 = { -100, -50, -25 };
     vector<int> sello_food = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
 
     struct Dpd {
@@ -598,7 +598,7 @@ struct PLAYER_NAME : public Player {
         clear_board();
         update_board();
         move_units();
-        if (round() == 26) {
+        if (round() == 51) {
             // priority_queue<gradient> Q;
             // poner_sello(Pos(1, 0), sello_zombie);
             // Q.push(get_gradient(Pos(3, 0)));
