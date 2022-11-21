@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Zarathustra
+#define PLAYER_NAME Zarathustra2
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -334,7 +334,30 @@ struct PLAYER_NAME : public Player {
     {
         vector<int> alive = alive_units(me());
         vector<Pos> food_positions = get_food();
+        vector<vector<int>> order(3, vector<int>());
         for (int id : alive) {
+            int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
+            Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, dir_dead, opt_dir;
+            BFS_food(dist_food, dir_food, unit(id).pos);
+            int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
+            BFS_enemy(dist_enemy_flojo, dir_enemy_flojo, unit(id).pos, -1);
+            BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
+            BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
+            if (dist_enemy == 1)
+                order[0].push_back(id);
+            if (dist_enemy == 2)
+                order[2].push_back(id);
+            else
+                order[1].push_back(id);
+        }
+        move_second(order[0]);
+        move_second(order[1]);
+        move_second(order[2]);
+    }
+
+    void move_second(vector<int> units)
+    {
+        for (int id : units) {
             int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
             Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, dir_dead, opt_dir;
             BFS_food(dist_food, dir_food, unit(id).pos);
@@ -347,24 +370,32 @@ struct PLAYER_NAME : public Player {
             BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
             BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
 
-            // if (dist_dead < 2 and rounds_dead < dist_dead)
-            //     opt_dir = dir_alternative(unit(id).pos, dir_dead);
-            // else
-            if (team_flojo == me())
-                if (dist_food < dist_enemy + 3)
+            if (team_flojo == me()) {
+                if (dist_enemy > 3)
                     opt_dir = dir_food;
-                else
+                else {
                     opt_dir = dir_enemy;
-            else {
-                if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
-                    opt_dir = dir_enemy_flojo;
-                else if (dist_enemy < 3 + dist_zombie)
+                }
+            } else {
+                if (dist_enemy <= 2)
                     opt_dir = dir_enemy;
-                else if (dist_food < dist_zombie)
-                    opt_dir = dir_food;
-                else
+                else if (dist_zombie <= 2)
                     opt_dir = dir_zombie;
+                else
+                    opt_dir = dir_food;
             }
+
+            //         opt_dir = dir_enemy;
+            // else {
+            //     if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
+            //         opt_dir = dir_enemy_flojo;
+            //     else if (dist_enemy < 3 + dist_zombie)
+            //         opt_dir = dir_enemy;
+            //     else if (dist_food < dist_zombie)
+            //         opt_dir = dir_food;
+            //     else
+            //         opt_dir = dir_zombie;
+            // }
             // if (unit(id).rounds_for_zombie != -1) {
             //     if (dist_food <= unit(id).rounds_for_zombie)
             //         opt_dir = dir_food;
