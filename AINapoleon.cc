@@ -23,15 +23,15 @@ struct PLAYER_NAME : public Player {
     map<Pos, int> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
-    vector<int> sello_zombie = { 1000, 0, 100, 125, 150, 25, 10, 5, 1 };
-    // vector<int> sello_zombie = { 0 };
-    vector<int> sello_enemy = { 1000, 0, 100, -100, -40, 25, 10, 5, 1 };
-    // vector<int> sello_enemy = { 0 };
-    vector<int> sello_blanco = { 3, 2, 1 };
-    vector<int> sello_friend = { -3, -3, 1, 2 };
-    vector<int> sello_dead_1 = { -100, -50, -25 };
-    vector<int> sello_dead_2 = { -100, -50, -25 };
-    vector<int> sello_food = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
+    // vector<int> sello_zombie = { 1000, 0, 100, 125, 150, 25, 10, 5, 1 };
+    // //vector<int> sello_zombie = { 1000, 0, 50, 125, 150, 25, 10, 5, 1 };
+    // vector<int> sello_enemy = { 1000, 0, 100, -100, -40, -25, -10, -5, -1 };
+    // // vector<int> sello_enemy = { 0 };
+    // vector<int> sello_blanco = { 3, 2, 1 };
+    // vector<int> sello_friend = { -3, -3, 1, 2 };
+    // vector<int> sello_dead_1 = { -100, -50, -25 };
+    // vector<int> sello_dead_2 = { -100, -50, -25 };
+    // vector<int> sello_food = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
 
     struct Dpd {
         Dir dir;
@@ -43,6 +43,25 @@ struct PLAYER_NAME : public Player {
         Pos p;
         double mod;
         bool operator<(const gradient& a) const { return mod < a.mod; }
+    };
+    struct stamps {
+        vector<int> zombie;
+        vector<int> enemy;
+        vector<int> blanco;
+        vector<int> friends;
+        vector<int> dead_1;
+        vector<int> dead_2;
+        vector<int> food;
+    };
+
+    stamps main = {
+        { 1000, 0, 100, 125, 150, 25, 10, 5, 1 },
+        { 1000, 0, 100, -100, -40, -25, -10, -5, -1 },
+        { 3, 2, 1 },
+        { -3, -3, 1, 2 },
+        { -100, -50, -25 },
+        { -100, -50, -25 },
+        { 1000, 500, 250, 100, 40, 25, 10, 5, 1 }
     };
 
     int BFS(Pos p1, Pos p2)
@@ -114,7 +133,7 @@ struct PLAYER_NAME : public Player {
                 board[p2] += sello[dist];
             }
     }
-    void clear_board()
+    void clear_board(stamps s)
     {
         for (int i = 0; i < 60; i++) {
             for (int j = 0; j < 60; j++) {
@@ -122,7 +141,7 @@ struct PLAYER_NAME : public Player {
                 if (pos_correct(p)) {
                     if (cell(p).owner != me()) {
                         board[p] = 0;
-                        poner_sello(p, sello_blanco);
+                        poner_sello(p, s.blanco);
                     } else
                         board[p] = -1;
                 } else
@@ -134,29 +153,29 @@ struct PLAYER_NAME : public Player {
         // else
         //     board[p] = 0;
     }
-    void update_board() // Función que actualiza los valores del mapa de interés
+    void update_board(stamps s) // Función que actualiza los valores del mapa de interés
     {
         for (int id : zombies()) //Ponemos sellos en los zombies
-            poner_sello(unit(id).pos, sello_zombie);
+            poner_sello(unit(id).pos, s.zombie);
 
         for (int pl = 0; pl < num_players(); ++pl) //Ponemos sellos en cada unidad viva de cada equipo enemigo
             if (pl != me())
                 for (int id : alive_units(pl))
-                    poner_sello(unit(id).pos, sello_enemy);
+                    poner_sello(unit(id).pos, s.enemy);
             else
                 for (int id : alive_units(pl))
-                    poner_sello(unit(id).pos, sello_friend);
+                    poner_sello(unit(id).pos, s.friends);
 
         for (int pl = 0; pl < num_players(); ++pl) //Ponemos sellos en cada unidad muerta de cada equipo
             //  (EL MIO INCLUIDO YA QUE ACABAN ZOMBIES IGUAL)
             for (int id : dead_units(pl))
                 if (unit(id).rounds_for_zombie < 3)
-                    poner_sello(unit(id).pos, sello_dead_1);
+                    poner_sello(unit(id).pos, s.dead_1);
                 else
-                    poner_sello(unit(id).pos, sello_dead_2);
+                    poner_sello(unit(id).pos, s.dead_2);
 
         for (Pos food_pos : get_food()) //Ponemos sellos en cada celda donde hay comida
-            poner_sello(food_pos, sello_food);
+            poner_sello(food_pos, s.food);
     }
 
     vector<bool> equal(double north, double south, double west, double east)
@@ -219,7 +238,7 @@ struct PLAYER_NAME : public Player {
         if (i != 1)
             east = east / (i - 1);
         east -= board[p];
-        cerr << p << ": " << north << " " << south << " " << west << " " << east << endl;
+        //  cerr << p << ": " << north << " " << south << " " << west << " " << east << endl;
         //
         // for (int i = 1; i <= int(grad_long); i++) {
         //     if (pos_correct(p + Pos(-i, 0)))
@@ -595,8 +614,8 @@ struct PLAYER_NAME : public Player {
             build_board();
             // //Hacer un bfs que vaya pintando la distancia a los vertices
         }
-        clear_board();
-        update_board();
+        clear_board(main);
+        update_board(main);
         move_units();
         if (round() == 51) {
             // priority_queue<gradient> Q;
