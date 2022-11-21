@@ -23,14 +23,15 @@ struct PLAYER_NAME : public Player {
     map<Pos, int> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
-    vector<int> sello_zombie = { 10, 8, 6, 4 };
+    vector<int> sello_zombie = { 1000, 0, 100, 125, 150, 25, 10, 5, 1 };
     // vector<int> sello_zombie = { 0 };
-    vector<int> sello_enemy = { 10, 8, 6, 4 };
+    vector<int> sello_enemy = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
     // vector<int> sello_enemy = { 0 };
-    vector<int> sello_friend = { 0, 1, 3, 5 };
-    vector<int> sello_dead_1 = { 0, 5, 3, 1 };
-    vector<int> sello_dead_2 = { 0, 0, 0, 0, 1 };
-    vector<int> sello_food = { 16, 12, 8, 6, 4, 2 };
+    vector<int> sello_blanco = { 3, 2, 1 };
+    vector<int> sello_friend = { 0, 1, 1, 2 };
+    vector<int> sello_dead_1 = { 16, 8, 4, 2, 1 };
+    vector<int> sello_dead_2 = { -16, -8, -4, 2, 1 };
+    vector<int> sello_food = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
 
     struct Dpd {
         Dir dir;
@@ -119,9 +120,10 @@ struct PLAYER_NAME : public Player {
             for (int j = 0; j < 60; j++) {
                 Pos p = Pos(i, j);
                 if (pos_correct(p)) {
-                    if (cell(p).owner != me())
-                        board[p] = 2;
-                    else
+                    if (cell(p).owner != me()) {
+                        board[p] = 0;
+                        poner_sello(p, sello_blanco);
+                    } else
                         board[p] = -1;
                 } else
                     board[p] = -10;
@@ -596,7 +598,7 @@ struct PLAYER_NAME : public Player {
         clear_board();
         update_board();
         move_units();
-        if (round() == 6) {
+        if (round() == 26) {
             // priority_queue<gradient> Q;
             // poner_sello(Pos(1, 0), sello_zombie);
             // Q.push(get_gradient(Pos(3, 0)));
