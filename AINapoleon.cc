@@ -23,15 +23,6 @@ struct PLAYER_NAME : public Player {
     map<Pos, int> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
-    // vector<int> sello_zombie = { 1000, 0, 100, 125, 150, 25, 10, 5, 1 };
-    // //vector<int> sello_zombie = { 1000, 0, 50, 125, 150, 25, 10, 5, 1 };
-    // vector<int> sello_enemy = { 1000, 0, 100, -100, -40, -25, -10, -5, -1 };
-    // // vector<int> sello_enemy = { 0 };
-    // vector<int> sello_blanco = { 3, 2, 1 };
-    // vector<int> sello_friend = { -3, -3, 1, 2 };
-    // vector<int> sello_dead_1 = { -100, -50, -25 };
-    // vector<int> sello_dead_2 = { -100, -50, -25 };
-    // vector<int> sello_food = { 1000, 500, 250, 100, 40, 25, 10, 5, 1 };
 
     struct Dpd {
         Dir dir;
@@ -58,6 +49,16 @@ struct PLAYER_NAME : public Player {
         { 1000, 0, 100, 125, 150, 25, 10, 5, 1 },
         { 1000, 0, 100, -100, -40, -25, -10, -5, -1 },
         { 3, 2, 1 },
+        { -3, -3, 1, 2 },
+        { -100, -50, -25 },
+        { -100, -50, -25 },
+        { 1000, 500, 250, 100, 40, 25, 10, 5, 1 }
+    };
+
+    stamps colony = {
+        { 1000 },
+        { 1000 },
+        { 30, 20, 10 },
         { -3, -3, 1, 2 },
         { -100, -50, -25 },
         { -100, -50, -25 },
@@ -614,8 +615,13 @@ struct PLAYER_NAME : public Player {
             build_board();
             // //Hacer un bfs que vaya pintando la distancia a los vertices
         }
-        clear_board(main);
-        update_board(main);
+        if (alive_units(me()).size() >= 30) {
+            clear_board(main);
+            update_board(main);
+        } else {
+            clear_board(main);
+            update_board(main);
+        }
         move_units();
         if (round() == 51) {
             // priority_queue<gradient> Q;

@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Zarathustra
+#define PLAYER_NAME Zarathustra2
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
