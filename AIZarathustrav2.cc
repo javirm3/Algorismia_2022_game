@@ -417,7 +417,7 @@ struct PLAYER_NAME : public Player {
                 act_move.id = cell(p).id;
                 act_move.priority = 2;
             } else {
-                if (dist_enemy <= 3) {
+                if (dist_enemy <= 4) {
                     if (dist_enemy == 2)
                         act_move.priority = 1;
                     else
