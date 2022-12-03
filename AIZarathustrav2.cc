@@ -172,7 +172,7 @@ struct PLAYER_NAME : public Player {
     }
     bool thereis_enemy_no_zombie(Pos p, int team, int dist)
     {
-        if (cell(p).id != -1) {
+        if (cell(p).id != -1 and unit(cell(p).id).type != Dead) {
             if (unit(cell(p).id).rounds_for_zombie == -1 or unit(cell(p).id).rounds_for_zombie >= dist) {
                 if (team == -1) {
                     return (unit(cell(p).id).player != me());
@@ -264,6 +264,7 @@ struct PLAYER_NAME : public Player {
                         x.dist + 1 });
                     int id = (cell(new_pos).id);
                     if (thereis_enemy_no_zombie(new_pos, team, x.dist + 1)) {
+                        cerr << new_pos << " " << unit(cell(new_pos).id).player << " " << x.dist << endl;
                         opt_dir = x.dir;
                         dist = x.dist + 1;
                         return;
@@ -348,6 +349,41 @@ struct PLAYER_NAME : public Player {
             }
         }
     }
+    void BFS_empty(Dir& opt_dir, Pos p1)
+    {
+        VVB visited(60, VB(60, false));
+        queue<Dpd> Q;
+        for (int i : random_permutation(4)) {
+            Dir d = dirs[i];
+            if (pos_correct(p1 + d)) {
+                Q.push({ d,
+                    p1 + d,
+                    1 });
+                visited[(p1 + d).i][(p1 + d).j] = true;
+                if (cell(p1 + d).owner != me()) {
+                    opt_dir = d;
+                    return;
+                }
+            }
+        }
+        while (not Q.empty()) {
+            Dpd x = Q.front();
+            Q.pop();
+            for (Dir d : dirs) {
+                Pos new_pos = x.p + d;
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j]) {
+                    visited[new_pos.i][new_pos.j] = true;
+                    Q.push({ x.dir,
+                        new_pos,
+                        x.dist + 1 });
+                    if (cell(new_pos).owner != me()) {
+                        opt_dir = x.dir;
+                        return;
+                    }
+                }
+            }
+        }
+    }
     Dir dir_cont(Dir d)
     {
         int i = 0;
@@ -402,7 +438,7 @@ struct PLAYER_NAME : public Player {
         int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
         BFS_enemy_no_zombie(dist_enemy, dir_enemy, unit(id).pos, -1);
         BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
-        BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
+        //BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
         if (dist_enemy == 1) {
             act_move.dir = dir_enemy;
             act_move.id = cell(p).id;
@@ -429,9 +465,13 @@ struct PLAYER_NAME : public Player {
                         act_move.priority = 2;
                         act_move.dir = dir_alternative_zombie(p, dir_zombie);
                         act_move.id = cell(p).id;
-                    } else {
+                    } else if (dist_food <= 7) {
                         act_move.priority = 2;
                         act_move.dir = dir_food;
+                        act_move.id = cell(p).id;
+                    } else {
+                        act_move.priority = 2;
+                        //BFS_empty(act_move.dir, p);
                         act_move.id = cell(p).id;
                     }
                 }
@@ -453,60 +493,60 @@ struct PLAYER_NAME : public Player {
         }
     }
 
-    void move_second(vector<int> units)
-    {
-        for (int id : units) {
-            int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
-            Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, dir_dead, opt_dir;
-            BFS_food(dist_food, dir_food, unit(id).pos);
-            int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
-            flojo_fuerte(team_flojo, team_fuerte);
-            if (team_flojo != me())
-                BFS_enemy(dist_enemy_flojo, dir_enemy_flojo, unit(id).pos, team_flojo);
-            else
-                BFS_enemy(dist_enemy, dir_enemy, unit(id).pos, -1);
-            BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
-            BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
-
-            if (team_flojo == me()) {
-                if (dist_enemy > 3)
-                    opt_dir = dir_food;
-                else {
-                    opt_dir = dir_enemy;
-                }
-            } else {
-                if (dist_enemy <= 2)
-                    opt_dir = dir_enemy;
-                else if (dist_zombie <= 2)
-                    opt_dir = dir_zombie;
-                else
-                    opt_dir = dir_food;
-            }
-
-            //         opt_dir = dir_enemy;
-            // else {
-            //     if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
-            //         opt_dir = dir_enemy_flojo;
-            //     else if (dist_enemy < 3 + dist_zombie)
-            //         opt_dir = dir_enemy;
-            //     else if (dist_food < dist_zombie)
-            //         opt_dir = dir_food;
-            //     else
-            //         opt_dir = dir_zombie;
-            // }
-            // if (unit(id).rounds_for_zombie != -1) {
-            //     if (dist_food <= unit(id).rounds_for_zombie)
-            //         opt_dir = dir_food;
-            //     else if (dist_zombie <= unit(id).rounds_for_zombie)
-            //         opt_dir = dir_zombie;
-            //     else if (dist_enemy < dist_zombie)
-            //         opt_dir = dir_enemy;
-            //     else
-            //         opt_dir = dir_zombie;
-            // }
-            move(id, opt_dir);
-        }
-    }
+    // void move_second(vector<int> units)
+    // {
+    //     for (int id : units) {
+    //         int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
+    //         Dir dir_food, dir_enemy, dir_enemy_flojo, dir_zombie, dir_dead, opt_dir;
+    //         BFS_food(dist_food, dir_food, unit(id).pos);
+    //         int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
+    //         flojo_fuerte(team_flojo, team_fuerte);
+    //         if (team_flojo != me())
+    //             BFS_enemy(dist_enemy_flojo, dir_enemy_flojo, unit(id).pos, team_flojo);
+    //         else
+    //             BFS_enemy(dist_enemy, dir_enemy, unit(id).pos, -1);
+    //         BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
+    //         BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
+    //
+    //         if (team_flojo == me()) {
+    //             if (dist_enemy > 3)
+    //                 opt_dir = dir_food;
+    //             else {
+    //                 opt_dir = dir_enemy;
+    //             }
+    //         } else {
+    //             if (dist_enemy <= 2)
+    //                 opt_dir = dir_enemy;
+    //             else if (dist_zombie <= 2)
+    //                 opt_dir = dir_zombie;
+    //             else
+    //                 opt_dir = dir_food;
+    //         }
+    //
+    //         //         opt_dir = dir_enemy;
+    //         // else {
+    //         //     if ((dist_enemy_flojo < dist_zombie) and (dist_enemy_flojo < dist_enemy + 2) and (dist_enemy_flojo < dist_food))
+    //         //         opt_dir = dir_enemy_flojo;
+    //         //     else if (dist_enemy < 3 + dist_zombie)
+    //         //         opt_dir = dir_enemy;
+    //         //     else if (dist_food < dist_zombie)
+    //         //         opt_dir = dir_food;
+    //         //     else
+    //         //         opt_dir = dir_zombie;
+    //         // }
+    //         // if (unit(id).rounds_for_zombie != -1) {
+    //         //     if (dist_food <= unit(id).rounds_for_zombie)
+    //         //         opt_dir = dir_food;
+    //         //     else if (dist_zombie <= unit(id).rounds_for_zombie)
+    //         //         opt_dir = dir_zombie;
+    //         //     else if (dist_enemy < dist_zombie)
+    //         //         opt_dir = dir_enemy;
+    //         //     else
+    //         //         opt_dir = dir_zombie;
+    //         // }
+    //         move(id, opt_dir);
+    //     }
+    // }
     virtual void play()
     {
         move_units();
