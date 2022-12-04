@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Zarathustra4
+#define PLAYER_NAME Zarathustra5
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -408,7 +408,7 @@ struct PLAYER_NAME : public Player {
         queue<Dpdu> Q;
         for (int act_unit : alive_units(me())) {
             if (not used[act_unit]) {
-                p1 = unit(act_unit).pos;
+                Pos p1 = unit(act_unit).pos;
                 for (int i : random_permutation(4)) {
                     Dir d = dirs[i];
                     if (pos_correct(p1 + d)) {
@@ -428,7 +428,7 @@ struct PLAYER_NAME : public Player {
             }
         }
         while (not Q.empty()) {
-            Dpd x = Q.front();
+            Dpdu x = Q.front();
             Q.pop();
             for (Dir d : dirs) {
                 Pos new_pos = x.p + d;
@@ -454,7 +454,7 @@ struct PLAYER_NAME : public Player {
         Dir opt_dir;
         for (Pos p : get_food()) {
             multiBFS_food(p, used, dist, opt_dir, mov_unit);
-            used[mov_unit] == true;
+            used[mov_unit] = true;
             // PROBLEMA: Cuando miro primero una comida que tiene una unidad a 3
             //y luego esa unidad tiene una comida a 2. Se movera a la mirada primero.
             // Posible sol: Multi BFS buscando cualquier comida desde todas las unidades
@@ -510,7 +510,7 @@ struct PLAYER_NAME : public Player {
                         act_move.dir = dir_food;
                     } else {
                         act_move.priority = 2;
-                        //BFS_empty(act_move.dir, p);
+                        BFS_empty(act_move.dir, p);
                     }
                 }
             }
@@ -521,7 +521,7 @@ struct PLAYER_NAME : public Player {
     void move_units()
     {
         vector<int> alive = alive_units(me());
-        vector<bool>& used;
+        vector<bool> used(alive.size(), false);
         priority_queue<movement> moves;
         for (int id : alive) {
             moves.push(best_dir(unit(id).pos));
