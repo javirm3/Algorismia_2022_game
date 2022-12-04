@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Zarathustra3
+#define PLAYER_NAME Zarathustra4
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -24,6 +24,12 @@ struct PLAYER_NAME : public Player {
         Dir dir;
         Pos p;
         int dist;
+    };
+    struct Dpdu {
+        Dir dir;
+        Pos p;
+        int dist;
+        int unit;
     };
     struct movement {
         Dir dir;
@@ -396,6 +402,75 @@ struct PLAYER_NAME : public Player {
         return;
     }
 
+    void multiBFS_food(Pos p, vector<bool>& used, int& dist, Dir& opt_dir, int& mov_unit)
+    {
+        VVB visited(60, VB(60, false));
+        queue<Dpdu> Q;
+        for (int act_unit : alive_units(me())) {
+            if (not used[act_unit]) {
+                p1 = unit(act_unit).pos;
+                for (int i : random_permutation(4)) {
+                    Dir d = dirs[i];
+                    if (pos_correct(p1 + d)) {
+                        Q.push({ d,
+                            p1 + d,
+                            1,
+                            act_unit });
+                        visited[(p1 + d).i][(p1 + d).j] = true;
+                        if (p1 + d == p) {
+                            opt_dir = d;
+                            dist = 1;
+                            mov_unit = act_unit;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        while (not Q.empty()) {
+            Dpd x = Q.front();
+            Q.pop();
+            for (Dir d : dirs) {
+                Pos new_pos = x.p + d;
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j]) {
+                    visited[new_pos.i][new_pos.j] = true;
+                    Q.push({ x.dir,
+                        new_pos,
+                        x.dist + 1,
+                        x.unit });
+                    if (cell(new_pos).food) {
+                        opt_dir = x.dir;
+                        dist = x.dist + 1;
+                        mov_unit = x.unit;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    void catch_food(vector<bool>& used)
+    {
+        int mov_unit, dist;
+        Dir opt_dir;
+        for (Pos p : get_food()) {
+            multiBFS_food(p, used, dist, opt_dir, mov_unit);
+            used[mov_unit] == true;
+            // PROBLEMA: Cuando miro primero una comida que tiene una unidad a 3
+            //y luego esa unidad tiene una comida a 2. Se movera a la mirada primero.
+            // Posible sol: Multi BFS buscando cualquier comida desde todas las unidades
+            // Y voy tachando la comida y las unidades conforme hago (vector de unidades, map de comida)
+        }
+    }
+
+    priority_queue<movement> merge(priority_queue<movement> Q1, priority_queue<movement> Q2)
+    {
+        while (not Q1.empty()) {
+            Q2.push(Q1.top());
+            Q1.pop();
+        }
+        return Q2;
+    }
+
     movement best_dir(Pos p)
     {
         int id = cell(p).id;
@@ -446,6 +521,7 @@ struct PLAYER_NAME : public Player {
     void move_units()
     {
         vector<int> alive = alive_units(me());
+        vector<bool>& used;
         priority_queue<movement> moves;
         for (int id : alive) {
             moves.push(best_dir(unit(id).pos));
