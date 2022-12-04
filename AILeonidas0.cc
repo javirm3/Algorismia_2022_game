@@ -1,6 +1,6 @@
 #include "Player.hh"
 #include <queue>
-#define PLAYER_NAME Zarathustra4
+#define PLAYER_NAME Leonidas0
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -24,6 +24,12 @@ struct PLAYER_NAME : public Player {
         Dir dir;
         Pos p;
         int dist;
+    };
+    struct Dpdu {
+        Dir dir;
+        Pos p;
+        int dist;
+        int unit;
     };
     struct movement {
         Dir dir;
@@ -214,7 +220,7 @@ struct PLAYER_NAME : public Player {
                     p1 + d,
                     1 });
                 visited[(p1 + d).i][(p1 + d).j] = true;
-                if (thereis_zombie(p1 + d)) {
+                if (thereis_zombie(p1 + d, 1)) {
                     opt_dir = d;
                     dist = 1;
                     return;
@@ -231,7 +237,7 @@ struct PLAYER_NAME : public Player {
                     Q.push({ x.dir,
                         new_pos,
                         x.dist + 1 });
-                    if (thereis_zombie(new_pos)) {
+                    if (thereis_zombie(new_pos, x.dist + 1)) {
                         opt_dir = x.dir;
                         dist = x.dist + 1;
                         return;
@@ -337,10 +343,10 @@ struct PLAYER_NAME : public Player {
         }
         return false;
     }
-    bool thereis_zombie(Pos p)
+    bool thereis_zombie(Pos p, int dist)
     {
         if (cell(p).id != -1)
-            if (unit(cell(p).id).type == Zombie)
+            if (unit(cell(p).id).type == Zombie or (unit(cell(p).id).rounds_for_zombie != -1 and unit(cell(p).id).rounds_for_zombie < dist))
                 return true;
         return false;
     }
@@ -396,59 +402,173 @@ struct PLAYER_NAME : public Player {
         return;
     }
 
+    void multiBFS_food(Pos p, vector<bool>& used, map<Pos, bool>& catched_food, int& dist, Dir& opt_dir, int& mov_unit)
+    {
+        VVB visited(60, VB(60, false));
+        queue<Dpdu> Q;
+        for (int act_unit : alive_units(me())) {
+            if (not used[act_unit]) {
+                Pos p1 = unit(act_unit).pos;
+                for (int i : random_permutation(4)) {
+                    Dir d = dirs[i];
+                    if (pos_correct(p1 + d)) {
+                        Q.push({ d,
+                            p1 + d,
+                            1,
+                            act_unit });
+                        visited[(p1 + d).i][(p1 + d).j] = true;
+                        if (cell(p1 + d).food and not catched_food[p1 + d]) {
+                            opt_dir = d;
+                            dist = 1;
+                            mov_unit = act_unit;
+                            catched_food[p1 + d] = true;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        while (not Q.empty()) {
+            Dpdu x = Q.front();
+            Q.pop();
+            for (Dir d : dirs) {
+                Pos new_pos = x.p + d;
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j]) {
+                    visited[new_pos.i][new_pos.j] = true;
+                    Q.push({ x.dir,
+                        new_pos,
+                        x.dist + 1,
+                        x.unit });
+                    if (cell(new_pos).food and not catched_food[new_pos]) {
+                        opt_dir = x.dir;
+                        dist = x.dist + 1;
+                        mov_unit = x.unit;
+                        catched_food[new_pos] = true;
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    priority_queue<movement> catch_food(vector<bool>& used, map<int, map<string, int>>& distances)
+    {
+        int mov_unit, dist, count = 0;
+        Dir opt_dir;
+        map<Pos, bool> catched_food;
+        priority_queue<movement> Q;
+        for (Pos p : get_food())
+            while (not catched_food[p] and count < used.size()) {
+                multiBFS_food(p, used, catched_food, dist, opt_dir, mov_unit);
+                if (dist <= 7 and (unit(mov_unit).rounds_for_zombie == -1 or unit(mov_unit).rounds_for_zombie >= dist) and (dist < distances[mov_unit]["enemy"] or (distances[mov_unit]["enemy"] > 4 and distances[mov_unit]["zombie"] > 2))) {
+                    used[mov_unit] = true;
+                    Q.push({ opt_dir,
+                        mov_unit,
+                        2 });
+                }
+                count++;
+            }
+        return Q;
+    }
+    priority_queue<movement> kill_prox(vector<bool>& used, map<int, map<string, int>>& distances)
+    {
+        vector<int> alive = alive_units(me());
+        int mov_unit, dist;
+        Dir opt_dir;
+        priority_queue<movement> Q;
+        for (int id : alive) {
+            Pos p = unit(id).pos;
+            int dist_enemy = INF, dist_zombie = INF;
+            Dir dir_enemy, dir_zombie;
+            BFS_enemy_no_zombie(dist_enemy, dir_enemy, p, -1);
+            distances[id]["enemy"] = dist_enemy;
+            BFS_zombie(dist_zombie, dir_zombie, p);
+            distances[id]["zombie"] = dist_zombie;
+            if (dist_enemy == 1) {
+                Q.push({ dir_enemy,
+                    id,
+                    5 });
+                used[id] = true;
+            } else if (dist_zombie == 1) {
+                Q.push({ dir_zombie,
+                    id,
+                    2 });
+                used[id] = true;
+            }
+        }
+        return Q;
+    }
+
+    priority_queue<movement> merge(priority_queue<movement> Q1, priority_queue<movement> Q2)
+    {
+        while (not Q1.empty()) {
+            Q2.push(Q1.top());
+            Q1.pop();
+        }
+        return Q2;
+    }
+
     movement best_dir(Pos p)
     {
         int id = cell(p).id;
         movement act_move;
-        int dist_food = INF, dist_enemy = INF, dist_enemy_flojo = INF, dist_zombie = INF, dist_dead = INF;
-        Dir dir_food, dir_enemy, dir_zombie, dir_dead, opt_dir;
-        BFS_food(dist_food, dir_food, p);
-        int team_flojo = 0, team_fuerte = 0, rounds_dead = 0;
+        int dist_enemy = INF, dist_zombie = INF;
+        Dir dir_enemy, dir_zombie, opt_dir;
         BFS_enemy_no_zombie(dist_enemy, dir_enemy, p, -1);
         BFS_zombie(dist_zombie, dir_zombie, p);
-        //BFS_dead(dist_dead, dir_dead, rounds_dead, unit(id).pos);
         act_move.id = id;
-        if (dist_enemy == 1) {
+        if (dist_enemy <= 4) {
+            if (dist_enemy == 2)
+                act_move.priority = 1;
+            else
+                act_move.priority = 2;
             act_move.dir = dir_enemy;
-            act_move.priority = 5;
         } else {
-            if (dist_zombie == 1) {
+            if (dist_zombie == 2) {
+                act_move.priority = 2;
+                act_move.dir = dir_alternative_zombie(p, dir_zombie);
+            } else if (dist_zombie == 3) {
+                act_move.priority = 2;
                 act_move.dir = dir_zombie;
-                act_move.priority = 2;
-            } else if (dist_food < dist_enemy) {
-                //cerr << p << " FOOD < ENEMY " << dist_food << dir_food << " " << dist_enemy << dir_enemy << endl;
-                act_move.dir = dir_food;
-                act_move.priority = 2;
             } else {
-                if (dist_enemy <= 4) {
-                    if (dist_enemy == 2)
-                        act_move.priority = 1;
-                    else
-                        act_move.priority = 2;
-                    act_move.dir = dir_enemy;
-                } else {
-                    if (dist_zombie == 2) {
-                        act_move.priority = 2;
-                        act_move.dir = dir_alternative_zombie(p, dir_zombie);
-                    } else if (dist_food <= 7) {
-                        act_move.priority = 2;
-                        act_move.dir = dir_food;
-                    } else {
-                        act_move.priority = 2;
-                        //BFS_empty(act_move.dir, p);
-                    }
-                }
+                act_move.priority = 2;
+                act_move.dir = dir_enemy;
             }
         }
         return act_move;
     }
 
+    priority_queue<movement> zombiefied(vector<bool>& used)
+    {
+        vector<int> alive = alive_units(me());
+        priority_queue<movement> Q;
+        int dist_enemy;
+        Dir dir_enemy;
+        for (int id : alive) {
+            if (unit(id).rounds_for_zombie != -1) {
+                BFS_enemy_no_zombie(dist_enemy, dir_enemy, unit(id).pos, me());
+                Q.push({ dir_enemy,
+                    id,
+                    2 });
+                used[id] = true;
+            }
+        }
+        return Q;
+    }
+
     void move_units()
     {
         vector<int> alive = alive_units(me());
+        vector<bool> used(alive.size(), false);
+        map<int, map<string, int>> distances;
         priority_queue<movement> moves;
+        priority_queue<movement> moves_1 = kill_prox(used, distances);
+        //priority_queue<movement> moves_0 = zombiefied(used);
+        priority_queue<movement> moves_2 = catch_food(used, distances);
+        //moves_1 = merge(moves_0, moves_1);
+        moves = merge(moves_1, moves_2);
         for (int id : alive) {
-            moves.push(best_dir(unit(id).pos));
+            if (not used[id])
+                moves.push(best_dir(unit(id).pos));
         }
         while (not moves.empty()) {
             move(moves.top().id, moves.top().dir);
