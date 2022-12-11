@@ -6,11 +6,6 @@ typedef vector<int> VI;
 typedef vector<VI> VVI;
 typedef vector<bool> VB;
 typedef vector<VB> VVB;
-typedef vector<Pos> VP;
-typedef vector<VP> VVP;
-typedef pair<int, Pos> tri;
-typedef vector<tri> VT;
-typedef vector<VT> VVT;
 
 struct PLAYER_NAME : public Player {
     static Player* factory()

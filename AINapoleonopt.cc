@@ -2,7 +2,7 @@
 #include <fstream>
 #include <map>
 #include <queue>
-#define PLAYER_NAME Napoleon0
+#define PLAYER_NAME Napoleonop
 
 typedef vector<int> VI;
 typedef vector<VI> VVI;
@@ -16,7 +16,7 @@ struct PLAYER_NAME : public Player {
     }
 
     const vector<Dir> dirs = { Up, Down, Left, Right };
-    map<Pos, int> board;
+    map<Pos, double> board;
     map<Pos, map<int, vector<Pos>>> Adj;
     int INF = 1e7;
     int count = 1;
@@ -33,24 +33,24 @@ struct PLAYER_NAME : public Player {
         bool operator<(const gradient& a) const { return mod < a.mod; }
     };
     struct stamps {
-        vector<int> zombie;
-        vector<int> enemy;
-        vector<int> blanco;
-        vector<int> friends;
-        vector<int> dead_1;
-        vector<int> dead_2;
-        vector<int> food;
+        vector<double> zombie;
+        vector<double> enemy;
+        vector<double> blanco;
+        vector<double> friends;
+        vector<double> dead_1;
+        vector<double> dead_2;
+        vector<double> food;
     };
     fstream fin;
 
     stamps main = {
-        { 2000, -500, 200, 125, 150, 25, 10, 5, 1 },
-        { 1000, -500, 100, -100, -40, -25, -10, -5, -1 },
-        { 3, 2, 1 },
-        { -3, -3, 1, 2 },
-        { -100, -50, -25 },
-        { -1000, -500, -25 },
-        { 1000, 500, 250, 100, 40, 25, 10, 5, 1 }
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        {},
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        {},
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0 }
     };
 
     stamps colony = {
@@ -142,7 +142,7 @@ struct PLAYER_NAME : public Player {
                 }
     }
 
-    void poner_sello(Pos p, vector<int> sello) // Función que imprime el sello pasado en la posición indicada
+    void poner_sello(Pos p, vector<double> sello) // Función que imprime el sello pasado en la posición indicada
     {
         int n = sello.size();
         for (int dist = 0; dist < n; ++dist)
@@ -160,7 +160,7 @@ struct PLAYER_NAME : public Player {
                         board[p] = 0;
                         poner_sello(p, s.blanco);
                     } else
-                        board[p] = -10;
+                        board[p] = -0.1;
                 } else
                     board[p] = -10;
             }
@@ -624,11 +624,63 @@ struct PLAYER_NAME : public Player {
         myfile << endl;
         myfile.close();
     }
+    void get_stamps()
+    {
+        fin.open("stamps.txt");
+        string s;
+        double x;
+        for (int i = 0; i < 9; i++) {
+            getline(fin, s);
+            stringstream ss(s);
+            double x = 0.0, tmp;
+            while (ss >> tmp)
+                x += tmp;
+            main.zombie[i] = x;
+        }
+        for (int i = 0; i < 9; i++) {
+            getline(fin, s);
+            stringstream ss(s);
+            double x = 0.0, tmp;
+            while (ss >> tmp)
+                x += tmp;
+            main.enemy[i] = x;
+        }
+        for (int i = 0; i < 9; i++) {
+            getline(fin, s);
+            stringstream ss(s);
+            double x = 0.0, tmp;
+            while (ss >> tmp)
+                x += tmp;
+            main.blanco[i] = x;
+        }
+        for (int i = 0; i < 9; i++) {
+            getline(fin, s);
+            stringstream ss(s);
+            double x = 0.0, tmp;
+            while (ss >> tmp)
+                x += tmp;
+            main.dead_1[i] = x;
+        }
+        for (int i = 0; i < 9; i++) {
+            getline(fin, s);
+            stringstream ss(s);
+            double x = 0.0, tmp;
+            while (ss >> tmp)
+                x += tmp;
+            main.food[i] = x;
+        }
+        for (int i = 0; i < 9; i++) {
+            cerr << main.zombie[i] << endl;
+        }
+        fin.close();
+    }
+
     virtual void play()
     {
         //move_units();
         if (round() == 0) {
             build_board();
+            get_stamps();
             // //Hacer un bfs que vaya pintando la distancia a los vertices
         }
         if (alive_units(me()).size() >= 30) {
@@ -639,13 +691,6 @@ struct PLAYER_NAME : public Player {
             update_board(main);
         }
         if (round() >= 196) {
-            // fin.open("Stamps.txt");
-            // int x;
-            // for (int i = 0; i < count; i++)
-            //     fin >> x;
-            // cerr << x << endl;
-            // fin.close();
-            // count++;
         }
         move_units();
         // if (round() == 24) {
