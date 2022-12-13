@@ -249,7 +249,7 @@ struct PLAYER_NAME : public Player
                         p1 + d,
                         1});
                 visited[(p1 + d).i][(p1 + d).j] = true;
-                if (thereis_zombie(p1 + d))
+                if (thereis_zombie(p1 + d, 1))
                 {
                     opt_dir = d;
                     dist = 1;
@@ -270,7 +270,7 @@ struct PLAYER_NAME : public Player
                     Q.push({x.dir,
                             new_pos,
                             x.dist + 1});
-                    if (thereis_zombie(new_pos))
+                    if (thereis_zombie(new_pos, x.dist + 1))
                     {
                         opt_dir = x.dir;
                         dist = x.dist + 1;
@@ -398,10 +398,10 @@ struct PLAYER_NAME : public Player
         }
         return false;
     }
-    bool thereis_zombie(Pos p)
+    bool thereis_zombie(Pos p, int dist)
     {
         if (cell(p).id != -1)
-            if (unit(cell(p).id).type == Zombie)
+            if (unit(cell(p).id).type == Zombie or (unit(cell(p).id).rounds_for_zombie != -1 and unit(cell(p).id).rounds_for_zombie < dist))
                 return true;
         return false;
     }
@@ -468,7 +468,7 @@ struct PLAYER_NAME : public Player
         bool found = false;
         for (Dir d : dirs_diagonal)
         {
-            found = found or thereis_zombie(p + d);
+            found = found or thereis_zombie(p + d, 2);
         }
         return found;
     }
