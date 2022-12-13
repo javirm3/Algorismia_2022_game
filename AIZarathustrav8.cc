@@ -471,7 +471,7 @@ struct PLAYER_NAME : public Player
         bool found = false;
         for (Dir d : dirs_diagonal)
         {
-            found = found or thereis_zombie(p + d, 2);
+            found = found or thereis_zombie(p + d, 5);
         }
         return found;
     }
