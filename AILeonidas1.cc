@@ -431,7 +431,7 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos))
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j])
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
@@ -538,12 +538,12 @@ struct PLAYER_NAME : public Player
         }
         else
         {
-            if (distances[id]["enemy"] <= distances[id]["zombie"] and distances[id]["enemy"] <= 9)
+            if (distances[id]["enemy"] <= distances[id]["zombie"] and distances[id]["enemy"] <= 7)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["enemy"];
             }
-            else if (distances[id]["zombie"] <= 9)
+            else if (distances[id]["zombie"] <= 7)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["zombie"];
