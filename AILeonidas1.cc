@@ -431,7 +431,7 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j])
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos))
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
@@ -521,37 +521,33 @@ struct PLAYER_NAME : public Player
         return Q2;
     }
 
-    movement best_dir(Pos p)
+    movement best_dir(Pos p, map<int, map<string, int>> &distances, map<int, map<string, Dir>> &directions)
     {
         int id = cell(p).id;
         movement act_move;
-        int dist_enemy = INF, dist_zombie = INF;
-        Dir dir_enemy, dir_zombie, opt_dir;
-        BFS_enemy_no_zombie(dist_enemy, dir_enemy, p, -1);
-        BFS_zombie(dist_zombie, dir_zombie, p);
         act_move.id = id;
 
-        if (dist_enemy == 2)
-        {
-            act_move.priority = 1;
-            act_move.dir = dir_enemy;
-        }
-        else if (zombies_diagonal(p))
+        if (zombies_diagonal(p))
         {
             act_move.priority = 2;
-            act_move.dir = dir_alternative_zombie(p, dir_zombie);
+            act_move.dir = dir_alternative_zombie(p, directions[id]["zombie"]);
+        }
+        else if (distances[id]["enemy"] == 2)
+        {
+            act_move.priority = 1;
+            act_move.dir = directions[id]["enemy"];
         }
         else
         {
-            if (dist_enemy <= dist_zombie)
+            if (distances[id]["enemy"] <= distances[id]["zombie"])
             {
                 act_move.priority = 2;
-                act_move.dir = dir_enemy;
+                act_move.dir = directions[id]["enemy"];
             }
-            else if (dist_zombie <= 7)
+            else if (distances[id]["zombie"] <= 7)
             {
                 act_move.priority = 2;
-                act_move.dir = dir_zombie;
+                act_move.dir = directions[id]["zombie"];
             }
             else
             {
@@ -605,7 +601,7 @@ struct PLAYER_NAME : public Player
         {
             if (not used[id])
             {
-                moves.push(best_dir(unit(id).pos));
+                moves.push(best_dir(unit(id).pos, distances, directions));
             }
         }
         while (not moves.empty())
