@@ -538,21 +538,21 @@ struct PLAYER_NAME : public Player
         }
         else
         {
-            if (distances[id]["enemy"] <= distances[id]["zombie"] and distances[id]["enemy"] <= 7)
+            if (distances[id]["enemy"] <= distances[id]["zombie"])
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["enemy"];
             }
-            else if (distances[id]["zombie"] <= 7)
+            else // if (distances[id]["zombie"])
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["zombie"];
             }
-            else
-            {
-                act_move.priority = 2;
-                BFS_empty(act_move.dir, p);
-            }
+            // else
+            // {
+            //     act_move.priority = 2;
+            //     BFS_empty(act_move.dir, p);
+            // }
         }
         return act_move;
     }
