@@ -536,7 +536,7 @@ struct PLAYER_NAME : public Player
             act_move.priority = 1;
             act_move.dir = dir_enemy;
         }
-        else if (dist_zombie == 2)
+        else if (zombies_diagonal(p))
         {
             act_move.priority = 2;
             act_move.dir = dir_alternative_zombie(p, dir_zombie);
@@ -548,16 +548,16 @@ struct PLAYER_NAME : public Player
                 act_move.priority = 2;
                 act_move.dir = dir_enemy;
             }
-            else // if (dist_zombie <= 7)
+            else if (dist_zombie <= 7)
             {
                 act_move.priority = 2;
                 act_move.dir = dir_zombie;
             }
-            // else
-            // {
-            //     act_move.priority = 2;
-            //     BFS_empty(act_move.dir, p);
-            // }
+            else
+            {
+                act_move.priority = 2;
+                BFS_empty(act_move.dir, p);
+            }
         }
         return act_move;
     }
