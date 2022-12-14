@@ -526,25 +526,24 @@ struct PLAYER_NAME : public Player
         int id = cell(p).id;
         movement act_move;
         act_move.id = id;
-
-        if (zombies_diagonal(p))
-        {
-            act_move.priority = 2;
-            act_move.dir = dir_alternative_zombie(p, directions[id]["zombie"]);
-        }
-        else if (distances[id]["enemy"] == 2)
+        if (distances[id]["enemy"] == 2)
         {
             act_move.priority = 1;
             act_move.dir = directions[id]["enemy"];
         }
+        else if (zombies_diagonal(p))
+        {
+            act_move.priority = 2;
+            act_move.dir = dir_alternative_zombie(p, directions[id]["zombie"]);
+        }
         else
         {
-            if (distances[id]["enemy"] <= distances[id]["zombie"])
+            if (distances[id]["enemy"] <= distances[id]["zombie"] and distances[id]["enemy"] <= 9)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["enemy"];
             }
-            else if (distances[id]["zombie"] <= 7)
+            else if (distances[id]["zombie"] <= 9)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["zombie"];
