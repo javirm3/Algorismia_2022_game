@@ -14,36 +14,33 @@ struct PLAYER_NAME : public Player
 
     const vector<Dir> dirs = {Up, Down, Left, Right};
     int INF = 1e7;
-    struct Dpd
+    struct Dpd // Struct for the BFS
     {
         Dir dir;
         Pos p;
         int dist;
     };
-    struct Dpdu
+    struct Dpdu // Struct for the BFS
     {
         Dir dir;
         Pos p;
         int dist;
         int unit;
     };
-    struct movement
+    struct movement // Struct with all the important info to make a move
     {
         Dir dir;
         int id;
         int priority;
         bool operator<(const movement &a) const { return priority < a.priority; }
     };
-    int min3(int x, int y, int z)
-    {
-        return min(min(x, y), z);
-    }
-    bool pos_correct(Pos p)
+
+    bool pos_correct(Pos p) // Returns if it's a non street and inside cell
     {
         return (pos_ok(p) and cell(p).type == Street);
     }
 
-    vector<Pos> get_food()
+    vector<Pos> get_food() // Returns a vector with the positions of all the food.
     {
         vector<Pos> food_pos;
         for (int i = 0; i < 60; i++)
@@ -101,6 +98,8 @@ struct PLAYER_NAME : public Player
         }
     }
     void BFS_enemy_no_zombie(int &dist, Dir &opt_dir, Pos p1, int team)
+    // Returns the direction and distance of the nearest enemy of the team we want,
+    //  that it's not going to be a zombie when we reach it, (team == 1 -> All enemies)
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
@@ -148,6 +147,7 @@ struct PLAYER_NAME : public Player
         dist = INF;
     }
     void BFS_zombie(int &dist, Dir &opt_dir, Pos p1)
+    // Returns the direction and distance of the nearest zombie
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
@@ -194,6 +194,7 @@ struct PLAYER_NAME : public Player
         dist = INF;
     }
     void BFS_dead(int &dist, Dir &opt_dir, int &rounds, Pos p1)
+    // Returns the direction and distance of the nearest dead unit
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
@@ -240,6 +241,7 @@ struct PLAYER_NAME : public Player
         }
     }
     void BFS_empty(Dir &opt_dir, Pos p1)
+    // Returns the direction and distance of the nearest non-owned cell
     {
         VVB visited(60, VB(60, false));
         queue<Dpd> Q;
@@ -248,9 +250,7 @@ struct PLAYER_NAME : public Player
             Dir d = dirs[i];
             if (pos_correct(p1 + d))
             {
-                Q.push({d,
-                        p1 + d,
-                        1});
+                Q.push({d, p1 + d, 1});
                 visited[(p1 + d).i][(p1 + d).j] = true;
                 if (cell(p1 + d).owner != me() and cell(p1 + d).id == -1)
                 {
@@ -269,9 +269,7 @@ struct PLAYER_NAME : public Player
                 if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j])
                 {
                     visited[new_pos.i][new_pos.j] = true;
-                    Q.push({x.dir,
-                            new_pos,
-                            x.dist + 1});
+                    Q.push({x.dir, new_pos, x.dist + 1});
                     if (cell(new_pos).owner != me())
                     {
                         opt_dir = x.dir;
@@ -285,10 +283,11 @@ struct PLAYER_NAME : public Player
     }
 
     bool thereis_enemy(Pos p, int team)
+    // Return whether there's an enemy of a team in the position p
     {
         if (cell(p).id != -1 and unit(cell(p).id).type == Alive)
         {
-            if (team == -1)
+            if (team == -1) // All teams except me
             {
                 return (unit(cell(p).id).player != me());
             }
@@ -298,6 +297,8 @@ struct PLAYER_NAME : public Player
         return false;
     }
     bool thereis_enemy_no_zombie(Pos p, int team, int dist)
+    // Return whether there's an enemy of a team that is as much as 2.7 times stronger than me
+    // in the position p and it's not a zombie before we get to it.
     {
         if (cell(p).id != -1 and unit(cell(p).id).type == Alive)
         {
@@ -317,6 +318,7 @@ struct PLAYER_NAME : public Player
         return false;
     }
     bool thereis_zombie(Pos p, int dist)
+    // Return whether there's a zombie in the position p before we get to it.
     {
         if (cell(p).id != -1)
             if (unit(cell(p).id).type == Zombie or (unit(cell(p).id).rounds_for_zombie != -1 and unit(cell(p).id).rounds_for_zombie != dist))
@@ -324,6 +326,7 @@ struct PLAYER_NAME : public Player
         return false;
     }
     bool thereis_dead(Pos p)
+    // Return whether there's a dead unit in the position p
     {
         if (cell(p).id != -1)
             if (unit(cell(p).id).type == Dead)
@@ -332,8 +335,8 @@ struct PLAYER_NAME : public Player
     }
 
     Dir dir_alternative_zombie(Pos p, Dir d)
+    // Returns a direction to escape a zombie
     {
-        // cerr << p << " " << d;
         for (int i : random_permutation(4))
         {
             Dir d1 = dirs[i];
@@ -349,8 +352,8 @@ struct PLAYER_NAME : public Player
         return d;
     }
     Dir dir_alternative_dead(Pos p, Dir d)
+    // Returns a direction to escape a dead
     {
-        // cerr << p << " " << d;
         for (int i : random_permutation(4))
         {
             Dir d1 = dirs[i];
@@ -372,8 +375,8 @@ struct PLAYER_NAME : public Player
         return d;
     }
     Dir dir_alternative_enemy(Pos p, Dir d)
+    // Returns a direction to escape an enemy
     {
-        // cerr << p << " " << d;
         for (int i : random_permutation(4))
         {
             Dir d1 = dirs[i];
@@ -390,6 +393,7 @@ struct PLAYER_NAME : public Player
     }
 
     void multiBFS_food(Pos p, vector<bool> &used, map<Pos, bool> &catched_food, int &dist, Dir &opt_dir, int &mov_unit, int &enemy_dist)
+    // MultiBFS to get the nearest unit to every food.
     {
         VVB visited(60, VB(60, false));
         queue<Dpdu> Q;
@@ -451,6 +455,7 @@ struct PLAYER_NAME : public Player
         }
     }
     priority_queue<movement> catch_food(vector<bool> &used, map<int, map<string, int>> &distances)
+    // Returns the movements of the units that have to go for food
     {
         int mov_unit, dist, count = 0;
         int enemy_dist = INF;
@@ -476,6 +481,7 @@ struct PLAYER_NAME : public Player
         return Q;
     }
     priority_queue<movement> kill_prox(vector<bool> &used, map<int, map<string, int>> &distances, map<int, map<string, Dir>> &directions, map<int, int> &rounds_dead)
+    // Returns the movements of the units that have enemies, deads or zombies next to them
     {
         vector<int> alive = alive_units(me());
         int mov_unit, dist;
@@ -514,6 +520,7 @@ struct PLAYER_NAME : public Player
     }
 
     bool zombies_diagonal(Pos p)
+    // Returns if a unit has some zombie in a diagonal cell
     {
         vector<Dir> dirs_diagonal = {UL, RU, LD, DR};
         bool found = false;
@@ -525,6 +532,7 @@ struct PLAYER_NAME : public Player
     }
 
     priority_queue<movement> merge(priority_queue<movement> Q1, priority_queue<movement> Q2)
+    // Merges two priority queues
     {
         while (not Q1.empty())
         {
@@ -535,6 +543,7 @@ struct PLAYER_NAME : public Player
     }
 
     movement catch_zombie(Pos p)
+    // Returns the movement that we have to do to catch a zombie before it catches us
     {
         movement move = {Up, cell(p).id, 2};
         for (int i : random_permutation(4))
@@ -548,6 +557,7 @@ struct PLAYER_NAME : public Player
         return move;
     }
     movement best_dir(Pos p, map<int, map<string, int>> &distances, map<int, map<string, Dir>> &directions)
+    // Returns the moves of the cells that don't have to kill prox or catch food.
     {
         int id = cell(p).id;
         movement act_move;
@@ -593,27 +603,8 @@ struct PLAYER_NAME : public Player
         return act_move;
     }
 
-    priority_queue<movement> zombiefied(vector<bool> &used)
-    {
-        vector<int> alive = alive_units(me());
-        priority_queue<movement> Q;
-        int dist_zombie;
-        Dir dir_zombie;
-        for (int id : alive)
-        {
-            if (unit(id).rounds_for_zombie != -1)
-            {
-                BFS_zombie(dist_zombie, dir_zombie, unit(id).pos);
-                if (dist_zombie <= unit(id).rounds_for_zombie)
-                    Q.push({dir_zombie,
-                            id,
-                            2});
-                used[id] = true;
-            }
-        }
-        return Q;
-    }
     void get_distances_dirs(map<int, map<string, int>> &distances, map<int, map<string, Dir>> &directions, map<int, int> &rounds_dead)
+    // Initializes the distances and directions of enemies, zombies and dead of every unit
     {
         for (int id : alive_units(me()))
         {
@@ -626,12 +617,12 @@ struct PLAYER_NAME : public Player
     }
 
     void move_units(map<int, map<string, int>> &distances, map<int, map<string, Dir>> &directions, map<int, int> &rounds_dead)
+    // Executes all the moves in every round
     {
         vector<int> alive = alive_units(me());
         vector<bool> used(100, false);
         priority_queue<movement> moves;
         priority_queue<movement> moves_1 = kill_prox(used, distances, directions, rounds_dead);
-        // priority_queue<movement> moves_3 = zombiefied(used);
         priority_queue<movement> moves_2 = catch_food(used, distances);
         moves = merge(moves_1, moves_2);
         for (int id : alive)
@@ -650,7 +641,7 @@ struct PLAYER_NAME : public Player
 
     virtual void play()
     {
-        vector<bool> used(alive_units(me()).size(), false);
+        vector<bool> used(alive_units(me()).size(), false); // A vector that stores whether a unit is already in use or not
         map<int, map<string, int>> distances;
         map<int, map<string, Dir>> directions;
         map<int, int> rounds_dead;
