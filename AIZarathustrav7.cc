@@ -109,7 +109,7 @@ struct PLAYER_NAME : public Player
         for (int i : random_permutation(4))
         {
             Dir d = dirs[i];
-            if (pos_correct(p1 + d))
+            if (pos_correct(p1 + d) and not thereis_dead(p1, 1))
             {
                 Q.push({d,
                         p1 + d,
@@ -130,7 +130,7 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos))
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos, x.dist + 1))
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
@@ -153,7 +153,7 @@ struct PLAYER_NAME : public Player
         for (int i : random_permutation(4))
         {
             Dir d = dirs[i];
-            if (pos_correct(p1 + d))
+            if (pos_correct(p1 + d) and not thereis_dead(p1, 1))
             {
                 Q.push({d,
                         p1 + d,
@@ -174,7 +174,7 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos))
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j])
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
@@ -198,7 +198,7 @@ struct PLAYER_NAME : public Player
         for (int i : random_permutation(4))
         {
             Dir d = dirs[i];
-            if (pos_correct(p1 + d))
+            if (pos_correct(p1 + d) and not thereis_dead(p1, 1))
             {
                 Q.push({d,
                         p1 + d,
@@ -219,7 +219,7 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos))
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos, x.dist + 1))
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
@@ -243,13 +243,13 @@ struct PLAYER_NAME : public Player
         for (int i : random_permutation(4))
         {
             Dir d = dirs[i];
-            if (pos_correct(p1 + d))
+            if (pos_correct(p1 + d) and not thereis_dead(p1, 1))
             {
                 Q.push({d,
                         p1 + d,
                         1});
                 visited[(p1 + d).i][(p1 + d).j] = true;
-                if (thereis_zombie(p1 + d))
+                if (thereis_zombie(p1 + d, 1))
                 {
                     opt_dir = d;
                     dist = 1;
@@ -264,13 +264,13 @@ struct PLAYER_NAME : public Player
             for (Dir d : dirs)
             {
                 Pos new_pos = x.p + d;
-                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and (thereis_zombie(new_pos) or not thereis_dead(new_pos)))
+                if (pos_correct(new_pos) and not visited[new_pos.i][new_pos.j] and not thereis_dead(new_pos, x.dist + 1))
                 {
                     visited[new_pos.i][new_pos.j] = true;
                     Q.push({x.dir,
                             new_pos,
                             x.dist + 1});
-                    if (thereis_zombie(new_pos))
+                    if (thereis_zombie(new_pos, x.dist + 1))
                     {
                         opt_dir = x.dir;
                         dist = x.dist + 1;
@@ -293,7 +293,7 @@ struct PLAYER_NAME : public Player
                         p1 + d,
                         1});
                 visited[(p1 + d).i][(p1 + d).j] = true;
-                if (thereis_dead(p1 + d))
+                if (thereis_dead(p1 + d, 1))
                 {
                     opt_dir = d;
                     dist = 1;
@@ -315,7 +315,7 @@ struct PLAYER_NAME : public Player
                     Q.push({x.dir,
                             new_pos,
                             x.dist + 1});
-                    if (thereis_dead(new_pos))
+                    if (thereis_dead(new_pos, x.dist + 1))
                     {
                         opt_dir = x.dir;
                         dist = x.dist + 1;
@@ -388,30 +388,27 @@ struct PLAYER_NAME : public Player
         {
             if (unit(cell(p).id).rounds_for_zombie == -1 or unit(cell(p).id).rounds_for_zombie >= dist)
             {
-                if (strength(unit(cell(p).id).player) <= 2.7 * strength(me()) or dist > 1)
+                if (team == -1)
                 {
-                    if (team == -1)
-                    {
-                        return (unit(cell(p).id).player != me());
-                    }
-                    else
-                        return (unit(cell(p).id).player == team);
+                    return (unit(cell(p).id).player != me());
                 }
+                else
+                    return (unit(cell(p).id).player == team);
             }
         }
         return false;
     }
-    bool thereis_zombie(Pos p)
+    bool thereis_zombie(Pos p, int dist)
     {
         if (cell(p).id != -1)
-            if (unit(cell(p).id).type == Zombie)
+            if (unit(cell(p).id).type == Zombie or (unit(cell(p).id).rounds_for_zombie != -1 and unit(cell(p).id).rounds_for_zombie < dist))
                 return true;
         return false;
     }
-    bool thereis_dead(Pos p)
+    bool thereis_dead(Pos p, int dist)
     {
         if (cell(p).id != -1)
-            if (unit(cell(p).id).type == Dead)
+            if (unit(cell(p).id).type == Dead and unit(cell(p).id).rounds_for_zombie < dist)
                 return true;
         return false;
     }
@@ -471,7 +468,7 @@ struct PLAYER_NAME : public Player
         bool found = false;
         for (Dir d : dirs_diagonal)
         {
-            found = found or thereis_zombie(p + d);
+            found = found or thereis_zombie(p + d, 2);
         }
         return found;
     }

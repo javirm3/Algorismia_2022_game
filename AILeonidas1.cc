@@ -100,7 +100,6 @@ struct PLAYER_NAME : public Player
             }
         }
     }
-
     void BFS_enemy(int &dist, Dir &opt_dir, Pos p1, int team)
     {
         VVB visited(60, VB(60, false));
@@ -349,7 +348,7 @@ struct PLAYER_NAME : public Player
         {
             if (unit(cell(p).id).rounds_for_zombie == -1 or unit(cell(p).id).rounds_for_zombie >= dist)
             {
-                if (strength(unit(cell(p).id).player) <= 3 * strength(me()) or dist > 1)
+                if (strength(unit(cell(p).id).player) <= 3 * strength(me()) or dist >= 0)
                 {
                     if (team == -1)
                     {
@@ -461,7 +460,7 @@ struct PLAYER_NAME : public Player
         for (Pos p : get_food())
         {
             count = 0;
-            while (not catched_food[p] and count < used.size())
+            while (not catched_food[p] and count < alive_units(me()).size())
             {
                 multiBFS_food(p, used, catched_food, dist, opt_dir, mov_unit);
                 if (dist <= 7 and (dist < distances[mov_unit]["enemy"] or (distances[mov_unit]["enemy"] > 4 and distances[mov_unit]["zombie"] > 2))) // and (unit(mov_unit).rounds_for_zombie == -1 or unit(mov_unit).rounds_for_zombie >= dist)
@@ -540,21 +539,21 @@ struct PLAYER_NAME : public Player
         }
         else
         {
-            if (distances[id]["enemy"] <= distances[id]["zombie"] + 1)
+            if (distances[id]["enemy"] <= distances[id]["zombie"] and distances[id]["enemy"] <= 9)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["enemy"];
             }
-            else // if (distances[id]["zombie"] <= 7)
+            else if (distances[id]["zombie"] <= 9)
             {
                 act_move.priority = 2;
                 act_move.dir = directions[id]["zombie"];
             }
-            // else
-            // {
-            //     act_move.priority = 2;
-            //     BFS_empty(act_move.dir, p);
-            // }
+            else
+            {
+                act_move.priority = 2;
+                BFS_empty(act_move.dir, p);
+            }
         }
         return act_move;
     }
