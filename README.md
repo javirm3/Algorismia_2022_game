@@ -5,6 +5,6 @@ The contest consists of programming an algorithm that plays a game (regles-TWD.p
 
 A simulator is also provided (simulator.py, simulator1py) that given the 4 names of the players and a number of matches, executes them and returns the percentage of win of every player and the seeds where they win.
 
-The latest algorithm that I presented was Leonidas2 and it ranked top 8/45.
+The latest algorithm that I presented was __Leonidas2__ and it ranked top 8/45.
 
 The game was developed by Albert Oliveras (oliveras@cs.upc.edu), Universitat Politècnica de Catalunya, 2022.
